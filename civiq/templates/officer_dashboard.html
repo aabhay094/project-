@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Officer Dashboard — CIVIQ{% endblock %}
+{% block content %}
+
+<section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display text-3xl font-bold text-white mb-1">Officer Workspace</h1>
+      <p class="text-zinc-500 text-sm">{{ profile.user.get_full_name|default:profile.user.username }} &middot; {{ profile.department.name }}</p>
+    </div>
+    <a href="{% url 'officer_logout' %}" class="inline-flex items-center gap-1.5 border border-white/15 hover:bg-white/5 text-zinc-300 text-sm font-medium px-4 py-2 rounded-lg transition">
+      <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+    </a>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="flex flex-wrap gap-2 mb-8">
+    <a href="?tab=all" class="px-4 py-2 rounded-lg text-sm font-medium border {% if active_tab == 'all' %}bg-emerald-500 text-black border-emerald-500{% else %}border-white/10 text-zinc-300 hover:bg-white/5{% endif %}">All ({{ counts.all }})</a>
+    <a href="?tab=emergency" class="px-4 py-2 rounded-lg text-sm font-medium border {% if active_tab == 'emergency' %}bg-red-500 text-black border-red-500{% else %}border-white/10 text-zinc-300 hover:bg-white/5{% endif %}">Emergency ({{ counts.emergency }})</a>
+    <a href="?tab=pending" class="px-4 py-2 rounded-lg text-sm font-medium border {% if active_tab == 'pending' %}bg-emerald-500 text-black border-emerald-500{% else %}border-white/10 text-zinc-300 hover:bg-white/5{% endif %}">Pending ({{ counts.pending }})</a>
+    <a href="?tab=in_progress" class="px-4 py-2 rounded-lg text-sm font-medium border {% if active_tab == 'in_progress' %}bg-emerald-500 text-black border-emerald-500{% else %}border-white/10 text-zinc-300 hover:bg-white/5{% endif %}">In Progress ({{ counts.in_progress }})</a>
+    <a href="?tab=resolved" class="px-4 py-2 rounded-lg text-sm font-medium border {% if active_tab == 'resolved' %}bg-emerald-500 text-black border-emerald-500{% else %}border-white/10 text-zinc-300 hover:bg-white/5{% endif %}">Resolved ({{ counts.resolved }})</a>
+  </div>
+
+  <!-- Ticket queue -->
+  <div class="space-y-4">
+    {% for complaint in queue %}
+    <div class="rounded-xl border border-white/10 bg-panel/40 p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-semibold text-white text-sm">{{ complaint.tracking_id }}</span>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full
+              {% if complaint.priority == 'emergency' %} bg-red-500/15 text-red-400 border border-red-500/30
+              {% elif complaint.priority == 'high' %} bg-amber-500/15 text-amber-400 border border-amber-500/30
+              {% else %} bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 {% endif %}">
+              {{ complaint.get_priority_display }}
+            </span>
+            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">{{ complaint.get_status_display }}</span>
+          </div>
+          <p class="text-sm text-zinc-400">{{ complaint.description|truncatewords:24 }}</p>
+          <p class="text-xs text-zinc-600 mt-1">{{ complaint.citizen_name }} &middot; {{ complaint.citizen_phone }} &middot; {{ complaint.created_at|date:"d M, h:i A" }}</p>
+        </div>
+        {% if complaint.evidence_photo %}
+        <img src="{{ complaint.evidence_photo.url }}" class="w-16 h-16 rounded-lg object-cover border border-white/10 shrink-0">
+        {% endif %}
+      </div>
+
+      <button type="button" onclick="document.getElementById('modal-{{ complaint.id }}').classList.remove('hidden')" class="inline-flex items-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 font-medium px-4 py-2 rounded-lg text-xs transition">
+        <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Update Ticket
+      </button>
+
+      <!-- Action modal -->
+      <div id="modal-{{ complaint.id }}" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-panel border border-white/10 rounded-xl max-w-md w-full p-6">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-semibold text-white">Update {{ complaint.tracking_id }}</h3>
+            <button type="button" onclick="document.getElementById('modal-{{ complaint.id }}').classList.add('hidden')" class="text-zinc-400 hover:text-white">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <form method="post" enctype="multipart/form-data" action="{% url 'update_complaint_status' complaint.tracking_id %}" class="space-y-4">
+            {% csrf_token %}
+            <div>
+              <label class="text-xs text-zinc-400 mb-1.5 block">New Status</label>
+              <select name="status" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+                <option value="assigned" {% if complaint.status == "assigned" %}selected{% endif %}>Auto-Assigned</option>
+                <option value="in_progress" {% if complaint.status == "in_progress" %}selected{% endif %}>Inspection / In-Progress</option>
+                <option value="resolved" {% if complaint.status == "resolved" %}selected{% endif %}>Resolved</option>
+                <option value="closed" {% if complaint.status == "closed" %}selected{% endif %}>Closed</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400 mb-1.5 block">Inspection Note</label>
+              <textarea name="note" rows="2" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"></textarea>
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400 mb-1.5 block">Resolution Remarks (if resolving)</label>
+              <textarea name="remarks" rows="2" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"></textarea>
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400 mb-1.5 block">Resolution Proof Photo (if resolving)</label>
+              <input type="file" name="proof_image" accept="image/*" class="w-full text-xs text-zinc-400">
+            </div>
+            <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+              <i data-lucide="check" class="w-4 h-4"></i> Save Update
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-zinc-500 text-sm">No tickets in this queue.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}

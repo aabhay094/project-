@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Departments & Helplines — CIVIQ{% endblock %}
+{% block content %}
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+  <h1 class="font-display text-3xl font-bold text-white mb-2">Departments &amp; Helplines</h1>
+  <p class="text-zinc-500 text-sm mb-10">Directory of all civic bodies handling grievances on CIVIQ.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {% for dept in departments %}
+    <div class="rounded-xl border border-white/10 bg-panel/40 p-6 flex flex-col">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+          {% if dept.logo %}
+            <img src="{{ dept.logo.url }}" class="w-full h-full object-cover">
+          {% else %}
+            <i data-lucide="building-2" class="w-5 h-5 text-emerald-400"></i>
+          {% endif %}
+        </div>
+        <div>
+          <h2 class="font-semibold text-white">{{ dept.name }}</h2>
+          <p class="text-xs text-zinc-500">{{ dept.head_designation }}{% if dept.head_name %}: {{ dept.head_name }}{% endif %}</p>
+        </div>
+      </div>
+
+      <p class="text-sm text-zinc-400 mb-4 flex-1">{{ dept.description|default:"Handles civic grievances within its jurisdiction." }}</p>
+
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        {% for sector in dept.sectors.all %}
+        <span class="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-400">{{ sector.name }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-sm mb-5">
+        <div class="flex items-center gap-2 text-zinc-300">
+          <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i> {{ dept.helpline_number|default:"—" }}
+        </div>
+        <div class="flex items-center gap-2 text-red-400">
+          <i data-lucide="phone-call" class="w-3.5 h-3.5 shrink-0"></i> {{ dept.emergency_number|default:"—" }}
+        </div>
+        <div class="flex items-center gap-2 text-zinc-300 col-span-2">
+          <i data-lucide="mail" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i> {{ dept.contact_email|default:"—" }}
+        </div>
+        <div class="flex items-center gap-2 text-zinc-300 col-span-2">
+          <i data-lucide="timer" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i> SLA: {{ dept.sla_hours }} hrs
+        </div>
+      </div>
+
+      <a href="{% url 'lodge_complaint' %}?dept={{ dept.id }}" class="inline-flex items-center justify-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 font-semibold px-4 py-2.5 rounded-lg text-sm transition">
+        <i data-lucide="megaphone" class="w-4 h-4"></i> Lodge in this Dept
+      </a>
+    </div>
+    {% empty %}
+    <p class="col-span-full text-zinc-500 text-sm">No departments have been added yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}

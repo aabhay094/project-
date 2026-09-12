@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}CIVIQ — National Public Grievance Portal{% endblock %}</title>
+<meta name="description" content="CIVIQ: Lodge, track and resolve civic grievances transparently.">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          base: '#09090b',
+          panel: '#0f172a',
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['"Space Grotesk"', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+  body { background-color: #09090b; }
+  .grad-panel {
+    background: linear-gradient(180deg, rgba(15,23,42,0.7) 0%, rgba(9,9,11,0.9) 100%);
+  }
+  .glow-emerald { box-shadow: 0 0 0 1px rgba(16,185,129,0.15), 0 8px 24px -8px rgba(16,185,129,0.25); }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #09090b; }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 8px; }
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body class="bg-base text-zinc-200 font-sans antialiased min-h-screen flex flex-col">
+
+<!-- ============ NAVBAR ============ -->
+<header class="sticky top-0 z-50 border-b border-white/10 bg-base/80 backdrop-blur-md">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="{% url 'home' %}" class="flex items-center gap-2 font-display font-bold text-lg text-white">
+        <span class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+          <i data-lucide="landmark" class="w-4 h-4 text-emerald-400"></i>
+        </span>
+        CIVIQ
+        <span class="hidden sm:inline text-[10px] font-sans font-medium tracking-wider uppercase text-zinc-500 border border-white/10 rounded px-1.5 py-0.5 ml-1">Govt Portal</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
+        <a href="{% url 'home' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Home</a>
+        <a href="{% url 'lodge_complaint' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Lodge Complaint</a>
+        <a href="{% url 'track_complaint' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Track Status</a>
+        <a href="{% url 'departments' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Departments</a>
+        <a href="{% url 'analytics' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Analytics</a>
+        <a href="{% url 'team' %}" class="px-3 py-2 rounded-md text-zinc-300 hover:text-white hover:bg-white/5 transition">Team</a>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <a href="{% url 'lodge_complaint' %}" class="hidden sm:inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold px-4 py-2 rounded-md transition glow-emerald">
+          <i data-lucide="megaphone" class="w-4 h-4"></i> Lodge Grievance
+        </a>
+        <button id="mobileMenuBtn" class="md:hidden w-9 h-9 rounded-md border border-white/10 flex items-center justify-center text-zinc-300">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden md:hidden pb-4 flex flex-col gap-1 text-sm font-medium">
+      <a href="{% url 'home' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Home</a>
+      <a href="{% url 'lodge_complaint' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Lodge Complaint</a>
+      <a href="{% url 'track_complaint' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Track Status</a>
+      <a href="{% url 'departments' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Departments</a>
+      <a href="{% url 'analytics' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Analytics</a>
+      <a href="{% url 'team' %}" class="px-3 py-2 rounded-md hover:bg-white/5">Team</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MESSAGES ============ -->
+{% if messages %}
+<div class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 space-y-2">
+  {% for message in messages %}
+    <div class="flex items-center gap-2 rounded-lg border px-4 py-3 text-sm
+      {% if message.tags == 'error' %} border-red-500/30 bg-red-500/10 text-red-300
+      {% else %} border-emerald-500/30 bg-emerald-500/10 text-emerald-300 {% endif %}">
+      <i data-lucide="{% if message.tags == 'error' %}alert-triangle{% else %}check-circle-2{% endif %}" class="w-4 h-4 shrink-0"></i>
+      <span>{{ message }}</span>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ============ PAGE CONTENT ============ -->
+<main class="flex-1">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="border-t border-white/10 bg-panel/40 mt-16">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div>
+      <div class="flex items-center gap-2 font-display font-bold text-white mb-3">
+        <span class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+          <i data-lucide="landmark" class="w-3.5 h-3.5 text-emerald-400"></i>
+        </span>
+        CIVIQ
+      </div>
+      <p class="text-sm text-zinc-400 leading-relaxed">connecting citizens directly with civic departments for transparent, timely resolution.</p>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Quick Links</h4>
+      <ul class="space-y-2 text-sm text-zinc-400">
+        <li><a href="{% url 'lodge_complaint' %}" class="hover:text-emerald-400 transition">Lodge Grievance</a></li>
+        <li><a href="{% url 'track_complaint' %}" class="hover:text-emerald-400 transition">Track Status</a></li>
+        <li><a href="{% url 'departments' %}" class="hover:text-emerald-400 transition">Departments</a></li>
+        <li><a href="{% url 'analytics' %}" class="hover:text-emerald-400 transition">Public Analytics</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Policies</h4>
+      <ul class="space-y-2 text-sm text-zinc-400">
+        {% for page in footer_pages %}
+          <li><a href="{% url 'page_detail' page.slug %}" class="hover:text-emerald-400 transition">{{ page.title }}</a></li>
+        {% empty %}
+          <li class="text-zinc-600">No policy pages yet</li>
+        {% endfor %}
+        <li><a href="{% url 'officer_login' %}" class="hover:text-emerald-400 transition">Officer Login</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Emergency Helplines</h4>
+      <ul class="space-y-2 text-sm text-zinc-400">
+        <li class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i> Nagar Nigam: 1533</li>
+        <li class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i> Jal Sansthan: 1916</li>
+        <li class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i> Discom Fault: 1912</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500">
+      <span>&copy; {% now "Y" %} CIVIQ — All rights reserved.</span>
+      <span class="flex items-center gap-1.5">
+        Designed &amp; Developed by
+        <span class="text-emerald-400 font-semibold">RiBhay Web Development Studio</span>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  lucide.createIcons();
+  document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+    document.getElementById('mobileMenu').classList.toggle('hidden');
+  });
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

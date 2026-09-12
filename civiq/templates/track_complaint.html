@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Track Grievance — CIVIQ{% endblock %}
+{% block content %}
+
+<section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+  <h1 class="font-display text-3xl font-bold text-white mb-2">Track Your Grievance</h1>
+  <p class="text-zinc-500 text-sm mb-8">Enter your Tracking ID to see live status.</p>
+
+  <form method="get" class="flex gap-2 mb-10">
+    <input type="text" name="tid" value="{{ tracking_id }}" placeholder="e.g. CIV-2026-0001" class="flex-1 bg-panel/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+    <button type="submit" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 rounded-lg text-sm transition">
+      <i data-lucide="search" class="w-4 h-4"></i> Track
+    </button>
+  </form>
+
+  {% if complaint %}
+  <div class="space-y-8">
+
+    <!-- Stepper -->
+    <div class="rounded-xl border border-white/10 bg-panel/40 p-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold text-white">{{ complaint.tracking_id }}</h2>
+        <span class="text-xs font-medium px-2.5 py-1 rounded-full
+          {% if complaint.priority == 'emergency' %} bg-red-500/15 text-red-400 border border-red-500/30
+          {% elif complaint.priority == 'high' %} bg-amber-500/15 text-amber-400 border border-amber-500/30
+          {% else %} bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 {% endif %}">
+          {{ complaint.get_priority_display }}
+        </span>
+      </div>
+      <p class="text-sm text-zinc-400 mb-6">{{ complaint.description }}</p>
+
+      <div class="flex items-center justify-between relative">
+        <div class="absolute top-3 left-0 right-0 h-0.5 bg-white/10"></div>
+        <div class="absolute top-3 left-0 h-0.5 bg-emerald-500 transition-all" style="width: {{ complaint.progress_percent }}%;"></div>
+        <div class="relative z-10 flex flex-col items-center gap-2 w-1/4">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 {% if complaint.progress_percent >= 20 %}bg-emerald-500 border-emerald-500{% else %}bg-base border-white/20{% endif %}">
+            {% if complaint.progress_percent >= 20 %}<i data-lucide="check" class="w-3.5 h-3.5 text-black"></i>{% endif %}
+          </div>
+          <span class="text-[11px] text-zinc-400 text-center">Submitted</span>
+        </div>
+        <div class="relative z-10 flex flex-col items-center gap-2 w-1/4">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 {% if complaint.progress_percent >= 45 %}bg-emerald-500 border-emerald-500{% else %}bg-base border-white/20{% endif %}">
+            {% if complaint.progress_percent >= 45 %}<i data-lucide="check" class="w-3.5 h-3.5 text-black"></i>{% endif %}
+          </div>
+          <span class="text-[11px] text-zinc-400 text-center">Auto-Assigned</span>
+        </div>
+        <div class="relative z-10 flex flex-col items-center gap-2 w-1/4">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 {% if complaint.progress_percent >= 70 %}bg-emerald-500 border-emerald-500{% else %}bg-base border-white/20{% endif %}">
+            {% if complaint.progress_percent >= 70 %}<i data-lucide="check" class="w-3.5 h-3.5 text-black"></i>{% endif %}
+          </div>
+          <span class="text-[11px] text-zinc-400 text-center">In-Progress</span>
+        </div>
+        <div class="relative z-10 flex flex-col items-center gap-2 w-1/4">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center border-2 {% if complaint.progress_percent >= 100 %}bg-emerald-500 border-emerald-500{% else %}bg-base border-white/20{% endif %}">
+            {% if complaint.progress_percent >= 100 %}<i data-lucide="check" class="w-3.5 h-3.5 text-black"></i>{% endif %}
+          </div>
+          <span class="text-[11px] text-zinc-400 text-center">Resolved</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Officer card -->
+    {% if complaint.assigned_officer %}
+    <div class="rounded-xl border border-white/10 bg-panel/40 p-6 flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+        {% if complaint.assigned_officer.photo %}
+          <img src="{{ complaint.assigned_officer.photo.url }}" class="w-12 h-12 rounded-full object-cover">
+        {% else %}
+          <i data-lucide="user-round" class="w-5 h-5 text-zinc-400"></i>
+        {% endif %}
+      </div>
+      <div>
+        <p class="font-medium text-white text-sm">{{ complaint.assigned_officer.user.get_full_name|default:complaint.assigned_officer.user.username }}</p>
+        <p class="text-xs text-zinc-500">{{ complaint.assigned_officer.designation }} &middot; {{ complaint.department.name }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Timeline -->
+    <div class="rounded-xl border border-white/10 bg-panel/40 p-6">
+      <h3 class="font-semibold text-white text-sm mb-4 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-emerald-400"></i> Timeline</h3>
+      <ul class="space-y-4">
+        {% for event in complaint.timeline_events.all %}
+        <li class="flex gap-3 text-sm">
+          <div class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+          <div>
+            <p class="text-zinc-200">{{ event.get_status_display }}</p>
+            {% if event.note %}<p class="text-zinc-500 text-xs mt-0.5">{{ event.note }}</p>{% endif %}
+            <p class="text-zinc-600 text-[11px] mt-0.5">{{ event.created_at|date:"d M Y, h:i A" }}</p>
+          </div>
+        </li>
+        {% empty %}
+        <li class="text-zinc-500 text-sm">No timeline events yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Resolution proof -->
+    {% if complaint.resolution %}
+    <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-6">
+      <h3 class="font-semibold text-white text-sm mb-3 flex items-center gap-2"><i data-lucide="badge-check" class="w-4 h-4 text-emerald-400"></i> Resolution Proof</h3>
+      <img src="{{ complaint.resolution.proof_image.url }}" class="rounded-lg max-h-64 object-cover border border-white/10 mb-3">
+      <p class="text-sm text-zinc-300">{{ complaint.resolution.remarks }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Feedback -->
+    {% if complaint.is_resolved %}
+      {% if complaint.feedback %}
+      <div class="rounded-xl border border-white/10 bg-panel/40 p-6">
+        <h3 class="font-semibold text-white text-sm mb-2">Thanks for your feedback!</h3>
+        <p class="text-amber-400">{% for i in "12345" %}{% if forloop.counter <= complaint.feedback.rating %}★{% else %}☆{% endif %}{% endfor %}</p>
+        {% if complaint.feedback.comments %}<p class="text-sm text-zinc-400 mt-2">{{ complaint.feedback.comments }}</p>{% endif %}
+      </div>
+      {% else %}
+      <form method="post" class="rounded-xl border border-white/10 bg-panel/40 p-6 space-y-4">
+        {% csrf_token %}
+        <h3 class="font-semibold text-white text-sm">Rate Your Experience</h3>
+        <div class="flex gap-2" id="starPicker">
+          {% for i in "12345" %}
+          <button type="button" class="star-btn text-2xl text-zinc-600" data-value="{{ forloop.counter }}">★</button>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="rating" id="ratingInput" value="5">
+        <textarea name="comments" rows="3" placeholder="Additional comments (optional)" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"></textarea>
+        <button type="submit" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+          <i data-lucide="send" class="w-4 h-4"></i> Submit Feedback
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% elif tracking_id %}
+  <p class="text-zinc-500 text-sm">No grievance found for this Tracking ID.</p>
+  {% endif %}
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const starBtns = document.querySelectorAll('.star-btn');
+  const ratingInput = document.getElementById('ratingInput');
+  function paintStars(val) {
+    starBtns.forEach(btn => {
+      btn.classList.toggle('text-amber-400', parseInt(btn.dataset.value) <= val);
+      btn.classList.toggle('text-zinc-600', parseInt(btn.dataset.value) > val);
+    });
+  }
+  starBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      ratingInput.value = btn.dataset.value;
+      paintStars(parseInt(btn.dataset.value));
+    });
+  });
+  paintStars(5);
+  lucide.createIcons();
+</script>
+{% endblock %}

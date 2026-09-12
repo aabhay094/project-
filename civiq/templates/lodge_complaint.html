@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Lodge Grievance — CIVIQ{% endblock %}
+{% block content %}
+
+<section class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+  <h1 class="font-display text-3xl font-bold text-white mb-2">Lodge a Grievance</h1>
+  <p class="text-zinc-500 text-sm mb-10">Fill the form below. Our NLP engine auto-detects the right department and urgency.</p>
+
+  <!-- Step indicator -->
+  <div class="flex items-center gap-2 mb-10" id="stepIndicator">
+    <div class="step-dot flex-1 h-1.5 rounded-full bg-emerald-500" data-step="1"></div>
+    <div class="step-dot flex-1 h-1.5 rounded-full bg-white/10" data-step="2"></div>
+    <div class="step-dot flex-1 h-1.5 rounded-full bg-white/10" data-step="3"></div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="grievanceForm" class="space-y-8">
+    {% csrf_token %}
+
+    <!-- STEP 1: Citizen details -->
+    <div class="form-step" data-step="1">
+      <div class="rounded-xl border border-white/10 bg-panel/40 p-6 space-y-5">
+        <h2 class="font-semibold text-white flex items-center gap-2"><i data-lucide="user" class="w-4 h-4 text-emerald-400"></i> Your Details</h2>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs text-zinc-400 mb-1.5 block">Full Name *</label>
+            <input type="text" name="citizen_name" required class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+          </div>
+          <div>
+            <label class="text-xs text-zinc-400 mb-1.5 block">Phone Number *</label>
+            <input type="tel" name="citizen_phone" required class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400 mb-1.5 block">Email (optional)</label>
+          <input type="email" name="citizen_email" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+        </div>
+      </div>
+      <div class="flex justify-end mt-5">
+        <button type="button" onclick="goToStep(2)" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+          Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Issue details + sector + NLP -->
+    <div class="form-step hidden" data-step="2">
+      <div class="rounded-xl border border-white/10 bg-panel/40 p-6 space-y-5">
+        <h2 class="font-semibold text-white flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i> Issue Details</h2>
+
+        <div>
+          <label class="text-xs text-zinc-400 mb-1.5 block">Sector</label>
+          <select name="sector" id="sectorSelect" class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+            <option value="">Auto-detect from description</option>
+            {% for sector in sectors %}
+              <option value="{{ sector.id }}">{{ sector.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-zinc-400 mb-1.5 block">Describe the Issue *</label>
+          <textarea name="description" id="descriptionInput" required rows="4" placeholder="e.g. Sadak par bada gaddha hai, ya water leakage near my house..." class="w-full bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"></textarea>
+        </div>
+
+        <!-- Real-time NLP preview -->
+        <div id="nlpPreview" class="hidden rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4 text-sm">
+          <div class="flex items-center gap-2 text-emerald-400 font-medium mb-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> AI Detection Preview
+          </div>
+          <p class="text-zinc-300">Department: <span id="nlpDepartment" class="text-white font-medium"></span></p>
+          <p class="text-zinc-300 mt-1">Urgency: <span id="nlpPriority" class="font-medium"></span></p>
+          <p class="text-zinc-500 text-xs mt-2" id="nlpTags"></p>
+        </div>
+
+        <div>
+          <label class="text-xs text-zinc-400 mb-1.5 block">Location</label>
+          <div class="flex gap-2">
+            <input type="text" name="address_text" id="addressInput" placeholder="Address / landmark" class="flex-1 bg-base border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50">
+            <button type="button" id="gpsBtn" class="inline-flex items-center gap-1.5 border border-white/15 hover:border-emerald-500/40 hover:bg-emerald-500/5 text-zinc-200 text-sm font-medium px-4 rounded-lg transition whitespace-nowrap">
+              <i data-lucide="map-pin" class="w-4 h-4"></i> Auto-Detect GPS
+            </button>
+          </div>
+          <p id="gpsStatus" class="text-xs text-zinc-500 mt-1.5"></p>
+          <input type="hidden" name="latitude" id="latitudeInput">
+          <input type="hidden" name="longitude" id="longitudeInput">
+        </div>
+
+        <div>
+          <label class="text-xs text-zinc-400 mb-1.5 block">Photo Evidence</label>
+          <label for="evidenceInput" class="flex items-center justify-center gap-2 border border-dashed border-white/15 hover:border-emerald-500/40 rounded-lg py-6 cursor-pointer text-sm text-zinc-400 transition">
+            <i data-lucide="camera" class="w-4 h-4"></i> Tap to upload photo
+          </label>
+          <input type="file" name="evidence_photo" id="evidenceInput" accept="image/*" class="hidden">
+          <img id="evidencePreview" class="hidden mt-3 rounded-lg max-h-48 object-cover border border-white/10">
+        </div>
+      </div>
+      <div class="flex justify-between mt-5">
+        <button type="button" onclick="goToStep(1)" class="inline-flex items-center gap-1.5 border border-white/15 hover:bg-white/5 text-zinc-300 font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+        </button>
+        <button type="button" onclick="goToStep(3)" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+          Review <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Review & submit -->
+    <div class="form-step hidden" data-step="3">
+      <div class="rounded-xl border border-white/10 bg-panel/40 p-6 space-y-3">
+        <h2 class="font-semibold text-white flex items-center gap-2 mb-3"><i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-400"></i> Review &amp; Submit</h2>
+        <p class="text-sm text-zinc-400">Please confirm your details before submitting. Once submitted, you'll receive a unique Tracking ID (e.g. <span class="text-emerald-400">CIV-2026-0001</span>) to monitor progress.</p>
+      </div>
+      <div class="flex justify-between mt-5">
+        <button type="button" onclick="goToStep(2)" class="inline-flex items-center gap-1.5 border border-white/15 hover:bg-white/5 text-zinc-300 font-semibold px-5 py-2.5 rounded-lg text-sm transition">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+        </button>
+        <button type="submit" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-2.5 rounded-lg text-sm transition glow-emerald">
+          <i data-lucide="send" class="w-4 h-4"></i> Submit Grievance
+        </button>
+      </div>
+    </div>
+  </form>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function goToStep(step) {
+    document.querySelectorAll('.form-step').forEach(el => el.classList.add('hidden'));
+    document.querySelector(`.form-step[data-step="${step}"]`).classList.remove('hidden');
+    document.querySelectorAll('.step-dot').forEach(dot => {
+      dot.classList.toggle('bg-emerald-500', parseInt(dot.dataset.step) <= step);
+      dot.classList.toggle('bg-white/10', parseInt(dot.dataset.step) > step);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // GPS auto-detect
+  document.getElementById('gpsBtn').addEventListener('click', () => {
+    const status = document.getElementById('gpsStatus');
+    if (!navigator.geolocation) {
+      status.textContent = 'Geolocation is not supported on this device.';
+      return;
+    }
+    status.textContent = 'Detecting your location...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        document.getElementById('latitudeInput').value = pos.coords.latitude;
+        document.getElementById('longitudeInput').value = pos.coords.longitude;
+        status.textContent = `Location captured (±${Math.round(pos.coords.accuracy)}m accuracy).`;
+      },
+      (err) => {
+        status.textContent = 'Could not fetch location: ' + err.message;
+      }
+    );
+  });
+
+  // Photo preview
+  document.getElementById('evidenceInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = document.getElementById('evidencePreview');
+      img.src = ev.target.result;
+      img.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Real-time NLP preview
+  let nlpTimer = null;
+  document.getElementById('descriptionInput').addEventListener('input', (e) => {
+    clearTimeout(nlpTimer);
+    const text = e.target.value;
+    if (text.trim().length < 6) {
+      document.getElementById('nlpPreview').classList.add('hidden');
+      return;
+    }
+    nlpTimer = setTimeout(() => {
+      fetch("{% url 'nlp_preview' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+        body: JSON.stringify({ description: text }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          const preview = document.getElementById('nlpPreview');
+          preview.classList.remove('hidden');
+          document.getElementById('nlpDepartment').textContent = data.department;
+          const priorityEl = document.getElementById('nlpPriority');
+          priorityEl.textContent = data.priority.charAt(0).toUpperCase() + data.priority.slice(1);
+          priorityEl.className = data.priority === 'emergency' ? 'font-medium text-red-400' : (data.priority === 'high' ? 'font-medium text-amber-400' : 'font-medium text-emerald-400');
+          document.getElementById('nlpTags').textContent = data.tags.length ? ('Matched: ' + data.tags.join(', ')) : '';
+        })
+        .catch(() => {});
+    }, 500);
+  });
+
+  lucide.createIcons();
+</script>
+{% endblock %}

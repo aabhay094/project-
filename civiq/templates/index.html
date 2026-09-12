@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}CIVIQ — Home{% endblock %}
+{% block content %}
+
+<!-- ============ HERO ============ -->
+<section class="relative overflow-hidden border-b border-white/10">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.12),transparent_45%)]"></div>
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+    
+    <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl">
+      Your Voice, <span class="text-emerald-400">Verified &amp; Resolved.</span>
+    </h1>
+    <p class="mt-6 text-lg text-zinc-400 max-w-2xl leading-relaxed">
+      CIVIQ connects citizens directly with civic departments — Nagar Nigam, Jal Sansthan, Discom, Traffic and Public Health — for transparent, time-bound grievance resolution.
+    </p>
+    <div class="mt-10 flex flex-wrap gap-4">
+      <a href="{% url 'lodge_complaint' %}" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-6 py-3.5 rounded-lg transition glow-emerald">
+        <i data-lucide="megaphone" class="w-4.5 h-4.5"></i> Lodge Grievance
+      </a>
+      <a href="{% url 'track_complaint' %}" class="inline-flex items-center gap-2 border border-white/15 hover:border-white/30 hover:bg-white/5 text-white font-semibold px-6 py-3.5 rounded-lg transition">
+        <i data-lucide="search" class="w-4.5 h-4.5"></i> Track Status
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIVE TRANSPARENCY COUNTER ============ -->
+<section class="border-b border-white/10 bg-panel/30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="rounded-xl border border-white/10 bg-base/60 p-6">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-zinc-400">Total Grievances Received</span>
+        <i data-lucide="inbox" class="w-4 h-4 text-emerald-400"></i>
+      </div>
+      <p class="text-3xl font-display font-bold text-white">{{ total_received }}</p>
+    </div>
+    <div class="rounded-xl border border-white/10 bg-base/60 p-6">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-zinc-400">Resolution Rate</span>
+        <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
+      </div>
+      <p class="text-3xl font-display font-bold text-white">{{ resolved_pct }}%</p>
+    </div>
+    <div class="rounded-xl border border-white/10 bg-base/60 p-6">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-zinc-400">Active Field Officers</span>
+        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+      </div>
+      <p class="text-3xl font-display font-bold text-white">{{ active_officers }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CORE SECTORS ============ -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+  <h2 class="font-display text-2xl font-bold text-white mb-1">Core Government Sectors</h2>
+  <p class="text-zinc-500 text-sm mb-8">Select a sector to see which department handles it.</p>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {% for sector in sectors %}
+    <a href="{% url 'lodge_complaint' %}?sector={{ sector.id }}" class="group rounded-xl border border-white/10 bg-panel/40 hover:border-emerald-500/40 hover:bg-emerald-500/5 p-5 transition">
+      <div class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:border-emerald-500/40">
+        <i data-lucide="{{ sector.icon }}" class="w-5 h-5 text-emerald-400"></i>
+      </div>
+      <h3 class="font-semibold text-white text-sm">{{ sector.name }}</h3>
+      <p class="text-xs text-zinc-500 mt-1">{{ sector.description|default:"Report issues in this sector" }}</p>
+    </a>
+    {% empty %}
+    <p class="col-span-full text-zinc-500 text-sm">Sectors will appear here once added in Django Admin.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============ RECENT RESOLUTIONS ============ -->
+<section class="border-t border-white/10 bg-panel/20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <h2 class="font-display text-2xl font-bold text-white mb-1">Recent Resolutions</h2>
+    <p class="text-zinc-500 text-sm mb-8">Real proof, from real complaints — before &amp; after.</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for res in recent_resolutions %}
+      <div class="rounded-xl border border-white/10 bg-base/60 overflow-hidden">
+        <div class="grid grid-cols-2">
+          <div class="aspect-square bg-zinc-800 flex items-center justify-center">
+            {% if res.complaint.evidence_photo %}
+              <img src="{{ res.complaint.evidence_photo.url }}" class="w-full h-full object-cover" alt="Before">
+            {% else %}
+              <span class="text-[10px] text-zinc-500">Before</span>
+            {% endif %}
+          </div>
+          <div class="aspect-square bg-zinc-800 flex items-center justify-center">
+            <img src="{{ res.proof_image.url }}" class="w-full h-full object-cover" alt="After">
+          </div>
+        </div>
+        <div class="p-4">
+          <p class="text-xs text-emerald-400 font-medium mb-1">{{ res.complaint.tracking_id }}</p>
+          <p class="text-sm text-zinc-300 line-clamp-2">{{ res.remarks }}</p>
+        </div>
+      </div>
+      {% empty %}
+      <p class="col-span-full text-zinc-500 text-sm">No resolutions published yet. Check back soon.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}
